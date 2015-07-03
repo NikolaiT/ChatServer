@@ -1,13 +1,12 @@
 import java.io.*;
-
 import javax.net.ssl.*;
-
 import com.sun.net.ssl.*;
 import com.sun.net.ssl.internal.ssl.Provider;
-
 import java.security.Security;
 
 /**
+ * This ChatClient is heavily inspired by code from https://www.owasp.org/index.php/Using_the_Java_Secure_Socket_Extensions.
+ * 
  * @author Joe Prasanna Kumar
  * This program simulates a client socket program which communicates with the SSL Server
  * 
@@ -19,14 +18,14 @@ import java.security.Security;
  * 5. Create an OutputStream object to write to the SSL Server
  * 6. Create an InputStream object to receive messages back from the SSL Server
  * 
- */ 
+ */
 
 public class ChatClient {
 
 	/**
 	 * @param args
 	 */
-	public static void main(String[] args) throws Exception{
+	public static void main(String[] args) throws Exception {
 		String strServerName = "localhost"; // SSL Server Name
 		int intSSLport = 8888; // Port where the SSL Server is listening
 		PrintWriter out = null;
@@ -50,21 +49,21 @@ public class ChatClient {
          	in = new BufferedReader(new InputStreamReader(sslSocket.getInputStream()));
 
 			BufferedReader stdIn = new BufferedReader(new InputStreamReader(System.in));
-			String userInput = "Hello Testing ";
-			out.println(userInput);
-
+			String userInput = "";
+			
+			System.out.println(in.readLine());
 			while ((userInput = stdIn.readLine()) != null) {
 			    out.println(userInput);
-			    System.out.println("echo: " + in.readLine());
+			    System.out.println(in.readLine());
 			}
 
-				out.println(userInput);
+			out.println(userInput);
 
-				// Closing the Streams and the Socket
-				out.close();
-				in.close();
-				stdIn.close();
-				sslSocket.close();
+			// Closing the Streams and the Socket
+			out.close();
+			in.close();
+			stdIn.close();
+			sslSocket.close();
 		}
 
 		catch(Exception exp)

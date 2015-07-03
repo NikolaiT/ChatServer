@@ -22,8 +22,6 @@ import java.util.Vector;
  * 
  * Some ideas taken from: https://www.owasp.org/index.php/Using_the_Java_Secure_Socket_Extensions
  * 
- * 
- * 
  * A keystore contains private keys, and the certificates with their corresponding public keys.
  * A truststore contains certificates from other parties that you expect to communicate with, or from Certificate Authorities that you trust to identify other parties.
  * 
@@ -122,12 +120,32 @@ class Handler implements Runnable {
 			// the output stream to the chat server
 			out = new PrintWriter(sslSocket.getOutputStream(), true);
 
-			boolean loggedIn = false;
-
 			// Handle the login process
+			//logIn();
 
-			while (!loggedIn) {
+		} catch (IOException e) {
+			System.out.println("Read failed");
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+	
+	/**
+	 * Handle the login process.
+	 * 
+	 * You may specifiy a threshold on how many log in attempts are possible per second 
+	 * by setting MAX_LOGINS_PER_SECOND.
+	 */
+	public void logIn() {
+		boolean loggedIn = false;
 
+		// Handle the login process
+
+		while (!loggedIn) {
+
+			try {
 				out.println("Please provide a username and password to authenticate!\n User: ");
 				long startTime = System.currentTimeMillis();
 				String username = in.readLine();
@@ -146,16 +164,18 @@ class Handler implements Runnable {
 				} else {
 					out.println("Login failed. Try again! \n");
 				}
-
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
 			}
 
-		} catch (IOException e) {
-			System.out.println("Read failed");
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
 		}
-
 	}
 
 
