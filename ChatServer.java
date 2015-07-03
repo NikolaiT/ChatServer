@@ -1,23 +1,67 @@
-//http://docs.oracle.com/javase/7/docs/api/java/util/concurrent/ExecutorService.html
 import java.io.*;
-import java.net.ServerSocket;
-import java.net.Socket;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
+
+import javax.net.ssl.*;
+
+import com.sun.net.ssl.*;
+
+import java.security.Security;
+
+import com.sun.net.ssl.internal.ssl.Provider;
+
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 import java.util.Vector;
 
-public class NetworkService implements Runnable {
+
+/**
+ * 
+ * @author nikolai
+ * 
+ * This is a simple ChatService over SSL using the Java JSEE library.
+ * 
+ * Some ideas taken from: https://www.owasp.org/index.php/Using_the_Java_Secure_Socket_Extensions
+ * 
+ * 
+ * 
+ * A keystore contains private keys, and the certificates with their corresponding public keys.
+ * A truststore contains certificates from other parties that you expect to communicate with, or from Certificate Authorities that you trust to identify other parties.
+ * 
+ * If you are going to test the client and server on your machines:
+ *
+ * Generate keystore  with:
+ * 	keytool -genkey -alias server-alias -keyalg RSA -keypass changeit -storepass changeit -keystore keystore.jks
+ * 
+ * Note: You must specify a fully qualified domain for the “first and last name” question. The reason for this use is that some CAs such as VeriSign expect this properties to be a fully qualified domain name.
+ * 
+ * Export the certificate for the client:
+ * 	keytool -export -alias server-alias -storepass changeit -file server.cer -keystore keystore.jks
+ * 
+ * Copy the client certificate over a secure channel to your client machine and import it in a trusstore:
+ * 
+ * 	keytool -import -v -trustcacerts -alias server-alias -file server.cer -keystore cacerts.jks -keypass changeit -storepass changeit
+ * 
+ */
+
+public class ChatServer implements Runnable {
+	// change this if you want to allow more clients
 	public static final int MAX_CLIENTS = 10;
-	private final ServerSocket serverSocket;
+	
+	private final SSLServerSocket sslServerSocket;
 	private final ExecutorService pool;
 
-	public NetworkService(int port, int poolSize) throws IOException {
-		serverSocket = new ServerSocket(port);
+	public ChatServer(int port, int poolSize) throws IOException {
+		
+		// Registering the JSSE provider
+		Security.addProvider(new Provider());
+		//Specifying the Keystore details
+		System.setProperty("javax.net.ssl.keyStore","/home/nikolai/workspace/ChatService/keys/server/keystore.jks");
+		System.setProperty("javax.net.ssl.keyStorePassword","changeit");
+		System.setProperty("javax.net.debug","all");
+		
+		SSLServerSocketFactory sslServerSocketfactory = (SSLServerSocketFactory)SSLServerSocketFactory.getDefault();
+		sslServerSocket = (SSLServerSocket)sslServerSocketfactory.createServerSocket(port);
+		
 		pool = Executors.newFixedThreadPool(poolSize);
 	}
 
@@ -25,7 +69,7 @@ public class NetworkService implements Runnable {
 		try {
 			int i = 1;
 			for (;;) {
-				pool.execute(new Handler(serverSocket.accept()));
+				pool.execute(new Handler((SSLSocket)sslServerSocket.accept()));
 				i++;
 			}
 		} catch (IOException ex) {
@@ -58,25 +102,25 @@ public class NetworkService implements Runnable {
 
 class Handler implements Runnable {
 	public static final int MAX_LOGINS_PER_SECOND = 1;
-	private final Socket socket;
+	private final SSLSocket sslSocket;
 	private BufferedReader in;
 	private PrintWriter out;
 	private String chatId;
 	private Useradmin ua;
 	static Vector handlers = new Vector(10);
 
-	Handler(Socket socket) {
+	Handler(SSLSocket sslSocket) {
 		ua = new Useradmin();
-		this.socket = socket;
+		this.sslSocket = sslSocket;
 		this.chatId = "Anonymous";
 
 		// read and service request on socket
 		try {
 			// the input stream of the client
 			in = new BufferedReader(new InputStreamReader(
-					socket.getInputStream()));
+					sslSocket.getInputStream()));
 			// the output stream to the chat server
-			out = new PrintWriter(socket.getOutputStream(), true);
+			out = new PrintWriter(sslSocket.getOutputStream(), true);
 
 			boolean loggedIn = false;
 
@@ -114,6 +158,7 @@ class Handler implements Runnable {
 
 	}
 
+
 	/**
 	 * Implements a chat client.
 	 * 
@@ -147,7 +192,7 @@ class Handler implements Runnable {
 			try {
 				in.close();
 				out.close();
-				socket.close();
+				sslSocket.close();
 			} catch (IOException ioe) {
 			} finally {
 				synchronized (handlers) {

@@ -1,6 +1,6 @@
 import java.io.IOException;
 
-class Test {
+class RunServer {
 
 	public static void main(String args[]) {
 		int port = 8888;
@@ -14,7 +14,7 @@ class Test {
 		}
 
 		try {
-			NetworkService ns = new NetworkService(8888, 10);
+			ChatServer ns = new ChatServer(port, 10);
 			ns.run();
 		} catch (IOException e) {
 			System.out.println(e);
